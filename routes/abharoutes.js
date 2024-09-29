@@ -45,18 +45,24 @@ router.post("/generate-otp", generateToken, async (req, res) => {
       `${ABHA_BASE_URL}/v1/registration/aadhaar/generateOtp`,
       { aadhaar },
       {
-        headers: { Authorization: `Bearer ${req.token}` },
+        headers: {
+          Authorization: `Bearer ${req.token}`,
+          Host: "healthidsbx.abdm.gov.in",
+        },
       }
     );
 
     txnId = response.data.txnId;
-    res.json({ success: "OTP generated",accessToken });
+    res.json({ success: "OTP generated" });
   } catch (error) {
     console.error(
       "Error during OTP generation:",
-      error.response?.data || error.message
+      error.response?.data || error.message || error
     );
-    res.status(500).json({ error: "Failed to generate OTP" });
+    res.status(500).json({
+      error: "Failed to generate OTP",
+      error: error.response?.data || error.message || error,
+    });
   }
 });
 
