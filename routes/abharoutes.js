@@ -47,7 +47,7 @@ router.post("/generate-otp", generateToken, async (req, res) => {
       {
         headers: {
           Authorization: `Bearer ${req.token}`,
-          Host: "healthidsbx.abdm.gov.in",
+          Host: "abhaserver.onrender.com/",
         },
       }
     );
