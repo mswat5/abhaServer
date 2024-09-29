@@ -41,15 +41,15 @@ router.post("/generate-otp", generateToken, async (req, res) => {
   const { aadhaar } = req.body;
 
   try {
-    // const response = await axios.post(
-    //   `${ABHA_BASE_URL}/v1/registration/aadhaar/generateOtp`,
-    //   { aadhaar },
-    //   {
-    //     headers: { Authorization: `Bearer ${req.token}` },
-    //   }
-    // );
+    const response = await axios.post(
+      `${ABHA_BASE_URL}/v1/registration/aadhaar/generateOtp`,
+      { aadhaar },
+      {
+        headers: { Authorization: `Bearer ${req.token}` },
+      }
+    );
 
-    // txnId = response.data.txnId;
+    txnId = response.data.txnId;
     res.json({ success: "OTP generated",accessToken });
   } catch (error) {
     console.error(
