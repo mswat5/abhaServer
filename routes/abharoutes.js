@@ -50,7 +50,7 @@ router.post("/generate-otp", generateToken, async (req, res) => {
     // );
 
     // txnId = response.data.txnId;
-    res.json({ success: "OTP generated", txnId });
+    res.json({ success: "OTP generated" });
   } catch (error) {
     console.error(
       "Error during OTP generation:",
