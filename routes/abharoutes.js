@@ -6,12 +6,8 @@ dotenv.config();
 const router = Router();
 const { CLIENT_ID, CLIENT_SECRET, ABHA_BASE_URL } = process.env;
 
-let accessToken = null;
-let txnId = null;
-
 const generateToken = async (req, res, next) => {
-  if (accessToken) {
-    req.token = accessToken;
+  if (req.accessToken) {
     next();
     return;
   }
@@ -25,8 +21,8 @@ const generateToken = async (req, res, next) => {
       }
     );
 
-    accessToken = response.data.accessToken;
-    req.token = accessToken;
+    req.accessToken = response.data.accessToken;
+    console.log("Generated accessToken:", req.accessToken);
     next();
   } catch (error) {
     console.error(
@@ -45,31 +41,25 @@ router.post("/generate-otp", generateToken, async (req, res) => {
       `${ABHA_BASE_URL}/v1/registration/aadhaar/generateOtp`,
       { aadhaar },
       {
-        headers: {
-          Authorization: `Bearer ${req.token}`,
-          Host: "abhaserver.onrender.com/",
-        },
+        headers: { Authorization: `Bearer ${req.accessToken}` },
       }
     );
 
-    txnId = response.data.txnId;
-    res.json({ success: "OTP generated" });
+    req.txnId = response.data.txnId;
+    res.json({ success: "OTP generated", txnId: req.txnId });
   } catch (error) {
     console.error(
       "Error during OTP generation:",
-      error.response?.data || error.message || error
+      error.response?.data || error.message
     );
-    res.status(500).json({
-      error: "Failed to generate OTP",
-      error: error.response?.data || error.message || error,
-    });
+    res.status(500).json({ error: "Failed to generate OTP" });
   }
 });
 
-router.post("/verify-otp", async (req, res) => {
-  const { otp } = req.body;
+router.post("/verify-otp", generateToken, async (req, res) => {
+  const { otp, txnId } = req.body;
 
-  if (!accessToken) {
+  if (!req.accessToken) {
     return res.status(400).json({ error: "Missing authorization token" });
   }
 
@@ -82,7 +72,7 @@ router.post("/verify-otp", async (req, res) => {
       `${ABHA_BASE_URL}/v1/registration/aadhaar/verifyOTP`,
       { otp, txnId },
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${req.accessToken}` },
       }
     );
 
@@ -96,11 +86,8 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
-router.post("/generate-mobile-otp", async (req, res) => {
-  const { mobile } = req.body;
-  if (!accessToken) {
-    return res.status(400).json({ error: "Missing authorization token" });
-  }
+router.post("/generate-mobile-otp", generateToken, async (req, res) => {
+  const { mobile, txnId } = req.body;
 
   if (!txnId) {
     return res.status(400).json({ error: "Missing txnId" });
@@ -111,7 +98,7 @@ router.post("/generate-mobile-otp", async (req, res) => {
       `${ABHA_BASE_URL}/v1/registration/aadhaar/generateMobileOTP`,
       { txnId, mobile },
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${req.accessToken}` },
       }
     );
 
@@ -129,12 +116,8 @@ router.post("/generate-mobile-otp", async (req, res) => {
   }
 });
 
-router.post("/verify-mobile-otp", async (req, res) => {
-  const { otp } = req.body;
-
-  if (!accessToken) {
-    return res.status(400).json({ error: "Missing authorization token" });
-  }
+router.post("/verify-mobile-otp", generateToken, async (req, res) => {
+  const { otp, txnId } = req.body;
 
   if (!txnId) {
     return res.status(400).json({ error: "Missing txnId" });
@@ -145,7 +128,7 @@ router.post("/verify-mobile-otp", async (req, res) => {
       `${ABHA_BASE_URL}/v1/registration/aadhaar/verifyMobileOTP`,
       { otp, txnId },
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${req.accessToken}` },
       }
     );
 
@@ -163,10 +146,8 @@ router.post("/verify-mobile-otp", async (req, res) => {
   }
 });
 
-router.post("/create-health-id", async (req, res) => {
-  if (!accessToken) {
-    return res.status(400).json({ error: "Missing authorization token" });
-  }
+router.post("/create-health-id", generateToken, async (req, res) => {
+  const { txnId } = req.body;
 
   if (!txnId) {
     return res.status(400).json({ error: "Missing txnId" });
@@ -177,7 +158,7 @@ router.post("/create-health-id", async (req, res) => {
       `${ABHA_BASE_URL}/v1/registration/aadhaar/createHealthIdWithPreVerified`,
       { txnId },
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${req.accessToken}` },
       }
     );
 
