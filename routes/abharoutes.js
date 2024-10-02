@@ -11,8 +11,10 @@ const generateToken = async (req, res, next) => {
     next();
     return;
   }
-
+  console.log("Generating accessToken 1");
+  //after 19.50 mins baad hi ye try wala block accessible hoga
   try {
+    console.log("Generating accessToken 2");
     const response = await axios.post(
       `https://dev.abdm.gov.in/gateway/v0.5/sessions`,
       {
@@ -22,7 +24,7 @@ const generateToken = async (req, res, next) => {
     );
 
     req.accessToken = response.data.accessToken;
-    console.log("Generated accessToken:", req.accessToken);
+    // console.log("Generated accessToken:", req.accessToken);
     next();
   } catch (error) {
     console.error(
@@ -56,8 +58,8 @@ router.post("/generate-otp", generateToken, async (req, res) => {
   }
 });
 
-router.post("/verify-otp", generateToken, async (req, res) => {
-  const { otp, txnId } = req.body;
+router.post("/create-health-id", generateToken, async (req, res) => {
+  const { otp, txnId, username,mobile } = req.body;
 
   if (!req.accessToken) {
     return res.status(400).json({ error: "Missing authorization token" });
@@ -69,109 +71,28 @@ router.post("/verify-otp", generateToken, async (req, res) => {
 
   try {
     const response = await axios.post(
-      `${ABHA_BASE_URL}/v1/registration/aadhaar/verifyOTP`,
-      { otp, txnId },
+      `${ABHA_BASE_URL}/v1/registration/aadhaar/createHealthIdWithAadhaarOtp`,
+      { otp, txnId, username ,mobile},
       {
         headers: { Authorization: `Bearer ${req.accessToken}` },
       }
     );
 
-    res.json({ success: "OTP verified", txnId });
+    console.log("Response Data:", response.data);
+    res.json({
+      success: "OTP verified",
+      Name: `${response.data.firstName} ${response.data.middleName} ${response.data.lastName}`,
+      Gender: response.data.gender,
+      Date_of_Birth: `${response.data.dayOfBirth}/${response.data.monthOfBirth}/${response.data.yearOfBirth}`,
+      Health_ID: response.data.healthId,
+      response 
+    });
   } catch (error) {
     console.error(
       "Error during OTP verification:",
       error.response?.data || error.message
     );
-    res.status(500).json({ error: "Failed to verify OTP" });
-  }
-});
-
-router.post("/generate-mobile-otp", generateToken, async (req, res) => {
-  const { mobile, txnId } = req.body;
-
-  if (!txnId) {
-    return res.status(400).json({ error: "Missing txnId" });
-  }
-
-  try {
-    const response = await axios.post(
-      `${ABHA_BASE_URL}/v1/registration/aadhaar/generateMobileOTP`,
-      { txnId, mobile },
-      {
-        headers: { Authorization: `Bearer ${req.accessToken}` },
-      }
-    );
-
-    res.json({
-      success: "Mobile OTP generated",
-      txnId,
-      txnid: response.data.txnId,
-    });
-  } catch (error) {
-    console.error(
-      "Error during mobile OTP generation:",
-      error.response?.data || error.message
-    );
-    res.status(500).json({ error: "Failed to generate mobile OTP" });
-  }
-});
-
-router.post("/verify-mobile-otp", generateToken, async (req, res) => {
-  const { otp, txnId } = req.body;
-
-  if (!txnId) {
-    return res.status(400).json({ error: "Missing txnId" });
-  }
-
-  try {
-    const response = await axios.post(
-      `${ABHA_BASE_URL}/v1/registration/aadhaar/verifyMobileOTP`,
-      { otp, txnId },
-      {
-        headers: { Authorization: `Bearer ${req.accessToken}` },
-      }
-    );
-
-    res.json({
-      success: "Mobile OTP verified",
-      txnId,
-      txnid: response.data.txnId,
-    });
-  } catch (error) {
-    console.error(
-      "Error during mobile OTP verification:",
-      error.response?.data || error.message
-    );
-    res.status(500).json({ error: "Failed to verify mobile OTP" });
-  }
-});
-
-router.post("/create-health-id", generateToken, async (req, res) => {
-  const { txnId } = req.body;
-
-  if (!txnId) {
-    return res.status(400).json({ error: "Missing txnId" });
-  }
-
-  try {
-    const response = await axios.post(
-      `${ABHA_BASE_URL}/v1/registration/aadhaar/createHealthIdWithPreVerified`,
-      { txnId },
-      {
-        headers: { Authorization: `Bearer ${req.accessToken}` },
-      }
-    );
-
-    res.json({
-      success: "Health ID created",
-      healthId: response.data.healthId,
-    });
-  } catch (error) {
-    console.error(
-      "Error during Health ID creation:",
-      error.response?.data || error.message
-    );
-    res.status(500).json({ error: "Failed to create Health ID" });
+    res.status(500).json({ error: "Failed to verify OTP", response: error });
   }
 });
 
