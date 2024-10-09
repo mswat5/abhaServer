@@ -22,16 +22,16 @@ const generateToken = async (req, res, next) => {
         clientSecret: CLIENT_SECRET,
       }
     );
-
     req.accessToken = response.data.accessToken;
-    // console.log("Generated accessToken:", req.accessToken);
     next();
   } catch (error) {
     console.error(
       "Error during token generation:",
       error.response?.data || error.message
     );
-    res.status(500).json({ error: "Failed to generate token" });
+    res
+      .status(500)
+      .json({ error: `Failed to generate token ,${error.message}` });
   }
 };
 
@@ -54,12 +54,12 @@ router.post("/generate-otp", generateToken, async (req, res) => {
       "Error during OTP generation:",
       error.response?.data || error.message
     );
-    res.status(500).json({ error: "Failed to generate OTP" });
+    res.status(500).json({ error: `Failed to generate OTP, ${error.message}` });
   }
 });
 
 router.post("/create-health-id", generateToken, async (req, res) => {
-  const { otp, txnId, username,mobile } = req.body;
+  const { otp, txnId, username, mobile } = req.body;
 
   if (!req.accessToken) {
     return res.status(400).json({ error: "Missing authorization token" });
@@ -72,7 +72,7 @@ router.post("/create-health-id", generateToken, async (req, res) => {
   try {
     const response = await axios.post(
       `${ABHA_BASE_URL}/v1/registration/aadhaar/createHealthIdWithAadhaarOtp`,
-      { otp, txnId, username ,mobile},
+      { otp, txnId, username, mobile },
       {
         headers: { Authorization: `Bearer ${req.accessToken}` },
       }
@@ -81,18 +81,20 @@ router.post("/create-health-id", generateToken, async (req, res) => {
     console.log("Response Data:", response.data);
     res.json({
       success: "OTP verified",
-      Name: `${response.data.firstName} ${response.data.middleName} ${response.data.lastName}`,
-      Gender: response.data.gender,
-      Date_of_Birth: `${response.data.dayOfBirth}/${response.data.monthOfBirth}/${response.data.yearOfBirth}`,
-      Health_ID: response.data.healthId,
-      response 
+      txnId: req.txnId,
+      healthIdData: response.data,
     });
   } catch (error) {
     console.error(
       "Error during OTP verification:",
       error.response?.data || error.message
     );
-    res.status(500).json({ error: "Failed to verify OTP", response: error });
+    res.status(500).json({
+      error: "Failed to verify OTP",
+      code: error.code || "UNKNOWN_ERROR",
+      message: error.message || "An unexpected error occurred",
+      details: error.response?.data?.details || [], 
+    });
   }
 });
 
